@@ -11,3 +11,7 @@ derived/*
 *.h5ad
 *.mtx
 *.rds
+
+# local environments
+.venv/
+venv/

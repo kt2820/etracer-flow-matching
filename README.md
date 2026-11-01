@@ -13,12 +13,16 @@ live in the project doc; this repo is the running code.
 
 ## Getting the data
 
-The deposit is not in this repo. Download `eTRACER.zip` from Zenodo record
-[16406856](https://zenodo.org/records/16406856) (preprint: bioRxiv
-2025.08.06.668639) and unzip it here as `Tumor_Immune_Evasion_eTRACER/`. Then
-build `derived/etracer_counts.h5ad` with the commands under "The count matrix".
-The small result tables in `derived/*.csv` are committed; everything else in
-`derived/` is regenerated.
+The deposit is not in this repo. Download `Tumor_Immune_Evasion_eTRACER.zip`
+from Zenodo record [19230230](https://zenodo.org/records/19230230) (posted
+2026-03-26) and unzip it here. Then build `derived/etracer_counts.h5ad` with
+the commands under "The count matrix". The small result tables in
+`derived/*.csv` are committed; everything else in `derived/` is regenerated.
+
+An older record, [16406856](https://zenodo.org/records/16406856) (2025,
+`eTRACER.zip`), has the same cells and clones but a more permissive clone
+table: 91% of EE cells called vs 47% here. See
+`docs/rung1_reconciliation.md` before mixing numbers computed on the two.
 
 ## Running
 
@@ -87,6 +91,12 @@ The metadata has two cell identifiers and they are not interchangeable:
   extinction both as an observed zero and as censored.
 - On a family hold-out, report the rung-0 clone-identity lookup alongside
   every expression arm.
+
+## Results so far
+
+- `docs/rung1_reconciliation.md`: why rung 1 scored 0.323 in one session and
+  0.263 in another. Both are right for their target. The predictable signal is
+  clone survival (r = 0.330), not growth among survivors (r = 0.145).
 
 ## Facts measured from the deposit
 
