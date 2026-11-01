@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.DS_Store
+.ipynb_checkpoints/
+
+# the deposit (2.5 GB) and anything derived from it
+Tumor_Immune_Evasion_eTRACER/
+derived/*
+# keep the small result tables so the numbers are visible on GitHub
+!derived/*.csv
+*.h5ad
+*.mtx
+*.rds
