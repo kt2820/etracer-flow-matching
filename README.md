@@ -94,6 +94,13 @@ The metadata has two cell identifiers and they are not interchangeable:
 
 ## Results so far
 
+![conditioning ladder](docs/ladder.png)
+
+- `docs/ladder_results.md`: the conditioning ladder on the reformulated
+  targets. Baseline expression predicts clone survival (kernel embedding
+  r = 0.38, AUC 0.73, against a ceiling of 0.67). It barely predicts growth
+  among survivors (r ≈ 0.19).
+
 - `docs/rung1_reconciliation.md`: why rung 1 scored 0.323 in one session and
   0.263 in another. Both are right for their target. The predictable signal is
   clone survival (r = 0.330), not growth among survivors (r = 0.145).
