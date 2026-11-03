@@ -1,116 +1,58 @@
-# Clone-conditioned flow matching on eTRACER
+# Lineage-coupled flow matching on eTRACER
 
-Scaffold for the conditioning-ladder experiment. Related-work and positioning
-live in the project doc; this repo is the running code.
+Course project for a graduate class on optimal transport and flow matching.
 
-## Layout
+**Problem statement.** Using the eTRACER dataset I'm trying to understand
+how unbalanced flow-matching models of single-cell tumor evolution behave
+when cells are coupled by clonal barcodes vs an inferred OT coupling. I will
+explore how the inferred coupling shapes clone growth and cell expression
+under immune pressure. And I will explore how different ways of modeling
+growth affect the learned dynamics.
 
-    Tumor_Immune_Evasion_eTRACER/   the deposit, as downloaded (2.5 GB)
-    notebooks/                      nb00 -> nb02, run in order
-    src/etracer.py                  shared loaders, growth table, ridge + grouped CV
-    scripts/                        rds -> h5ad conversion and its verification
-    derived/                        outputs; nb00 writes the manifest everything else reads
+**The data.** eTRACER (Yang, Hou, Wang et al., bioRxiv 2025.08.06.668639;
+Zenodo record 19230230): barcoded mouse lung-cancer clones grown as tumors
+under CD8 T-cell pressure and passaged three generations deep, with
+single-cell RNA-seq at every stage. Flow matching between two tumors needs a
+coupling: which Primary cells are paired with which Secondary cells. Usually
+that coupling is inferred by optimal transport on expression. Here the
+barcodes give it exactly, clone by clone, including which clones grew and
+which were lost.
 
-## Getting the data
+## Notebooks (`data_exploration/`)
 
-The deposit is not in this repo. Download `Tumor_Immune_Evasion_eTRACER.zip`
-from Zenodo record [19230230](https://zenodo.org/records/19230230) (posted
-2026-03-26) and unzip it here. Then build `derived/etracer_counts.h5ad` with
-the commands under "The count matrix". The small result tables in
-`derived/*.csv` are committed; everything else in `derived/` is regenerated.
+Read them in this order. Each one ends where the next one begins.
 
-An older record, [16406856](https://zenodo.org/records/16406856) (2025,
-`eTRACER.zip`), has the same cells and clones but a more permissive clone
-table: 91% of EE cells called vs 47% here. See
-`docs/rung1_reconciliation.md` before mixing numbers computed on the two.
+1. **`etracer_overview.ipynb` — what the data is.** The experimental
+   design (3 founder families, 3 → 6 → 6 tumors), how the deposit's names
+   map to ours, the five tumor states, the 173 clones and their trees, and
+   the clonal bottleneck: most clones are never seen again after the
+   Primary tumor, and survival rises with clone size. Runs on the metadata
+   and trees alone.
+2. **`survival_motivation.ipynb` — selection acts on clones.** Does a
+   clone's Primary-tumor cells predict its survival beyond its size? Fate
+   repeats across independent mice once size is accounted for, and
+   survivors already differ in state mix and expression before selection,
+   though mostly through the state mix. So which cells have descendants is
+   a clone-level fact that expression reflects only in part. Needs the
+   count matrix.
+3. **`coupling_ablation.ipynb` — what the barcodes buy.** Flow matching
+   needs a coupling between Primary and Secondary cells. Compares the exact
+   lineage coupling (cells paired within clone, clone mass from the
+   observed growth) with the coupling standard unbalanced OT would infer
+   from expression alone, on ancestry, growth, state transitions, velocity
+   targets and generalisation to held-out clones. Ends with the ranked next
+   steps for training the flows.
 
-## Running
+`GLOSSARY.md` defines the terms used across the notebooks and points to
+where each is computed.
 
-    cd notebooks && jupyter lab
+The notebooks import `src/etracer.py` and read cached arrays from `derived/`
+and `review/`, which are not committed.
 
-`nb00` -> `nb01` -> `nb02`. Each writes to `derived/`, and the later ones read
-what the earlier ones wrote.
+## Data
 
-## The count matrix
-
-`derived/etracer_counts.h5ad` — 91,411 cells x 32,285 genes, 399,161,403
-nonzeros (13.5% dense), raw integer UMI as float32 CSR, 967 MB gzipped.
-Converted locally, no R involved.
-
-### Why not readRDS
-
-`sc_UMI_count.rds` is a Seurat v5 object that expands to 5.02 GB. The Cowork VM
-has 4 GB of RAM and no R, so `readRDS` cannot load it at all, and installing R
-would not have helped. `scripts/rds_to_h5ad.py` instead walks R's
-serialization format directly and streams the two large sparse arrays straight
-into HDF5, so peak memory stays at ~216 MB.
-
-    python3 scripts/rds_to_h5ad.py scan \
-        Tumor_Immune_Evasion_eTRACER/scRNA/sc_UMI_count.rds derived/rds_manifest.json
-    python3 scripts/rds_extract.py \
-        Tumor_Immune_Evasion_eTRACER/scRNA/sc_UMI_count.rds \
-        derived/rds_manifest.json derived/etracer_counts.h5ad
-    python3 scripts/verify_h5ad.py derived/etracer_counts.h5ad \
-        Tumor_Immune_Evasion_eTRACER/scRNA/scRNA.metadata.csv
-
-Two passes: the scan maps where things are, the extract streams only the
-targeted vectors. Takes about 60 s each. Needs `h5py`; `anndata` only for the
-verification step. `scripts/convert_seurat_to_h5ad.R` is kept as the
-conventional route for a machine that does have R and the memory.
-
-A dgCMatrix is CSC over (genes x cells), which is byte-for-byte the CSR of
-(cells x genes). The transpose is therefore free and no reindexing happens.
-
-### Verified against the deposit
-
-Per-cell UMI totals recomputed from the matrix match `nCount_RNA` on
-**0 / 91,411** mismatches, and per-cell detected genes match `nFeature_RNA` on
-**0 / 91,411**. Cell names come out identical to the metadata and in the same
-order, max UMI is 4,126, and no entry is non-integer — so float32 is lossless
-here. Total 1,899,181,893 UMI.
-
-### The join key, which is easy to get wrong
-
-The metadata has two cell identifiers and they are not interchangeable:
-
-| Column | Example | Use |
-| --- | --- | --- |
-| `cell_id` (the CSV's unnamed index) | `T1_T1_a3026_AAACCCAAGACTAGAT-1` | matches `h5ad.obs_names` |
-| `cell` (the CSV's `cellName`) | `T1_a3026_AAACCCAAGACTAGAT` | metadata-internal only |
-
-`et.load_metadata` returns both. Join anything from the h5ad on `cell_id`.
-
-## Protocol, fixed before any model
-
-- Group by clone. Notebook 00 proves components == clones for this deposit
-  (no static barcode is shared between clones; no cell maps to two clones), so
-  the clone id is a valid group key.
-- Report mean +/- sd over 20 repeats of grouped 5-fold CV, with a permutation
-  null. Single splits swing 0.26 to 0.51 on this data.
-- State the minimum-cells-per-clone threshold beside every number, and report
-  extinction both as an observed zero and as censored.
-- On a family hold-out, report the rung-0 clone-identity lookup alongside
-  every expression arm.
-
-## Results so far
-
-![conditioning ladder](docs/ladder.png)
-
-- `docs/ladder_results.md`: the conditioning ladder on the reformulated
-  targets. Baseline expression predicts clone survival (kernel embedding
-  r = 0.38, AUC 0.73, against a ceiling of 0.67). It barely predicts growth
-  among survivors (r ≈ 0.19).
-
-- `docs/rung1_reconciliation.md`: why rung 1 scored 0.323 in one session and
-  0.263 in another. Both are right for their target. The predictable signal is
-  clone survival (r = 0.330), not growth among survivors (r = 0.145).
-
-## Facts measured from the deposit
-
-91,411 cells, 32,285 genes. 15 tumours: 3 BL (one per founder family a3026 /
-a3028 / a3030), 6 EE (two passages per family), 6 LE. 173 clones, 109 present
-at all three stages, 132 present in all three families.
-
-Clone-call rate is roughly flat at 47% / 47% / 57% for BL / EE / LE. An earlier
-note recorded 49% / 91% / 95%; the deposited metadata does not support that, and
-`nb00` is the cell that settles it.
+The count matrix the notebooks start from, `derived/etracer_counts.h5ad`
+(91,411 cells x 32,285 genes, raw integer UMI counts converted from the
+deposit's Seurat object), is available on
+[Google Drive](https://drive.google.com/file/d/1ptOXFz8a9KazCyosHFQ5SWC4ccRepFjs/view?usp=drive_link).
+Download it and place it at `derived/etracer_counts.h5ad`.

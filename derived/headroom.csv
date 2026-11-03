@@ -1,5 +1,0 @@
-predictor,r_obs,r_corrected,pct_of_ceiling
-rung 0: clone-identity lookup (family hold-out),0.605,0.8003585425906571,0.8003585425906571
-rung 1: 5 state fractions,0.323,0.4272988582756731,0.4272988582756731
-"pseudobulk mean, 400 genes",0.376,0.4974129124199786,0.4974129124199786
-kernel mean embedding of the cell distribution,0.441,0.5834018467479004,0.5834018467479004

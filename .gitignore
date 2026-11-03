@@ -3,11 +3,10 @@ __pycache__/
 .DS_Store
 .ipynb_checkpoints/
 
-# the deposit (2.5 GB) and anything derived from it
+# the deposit (2.5 GB) and everything derived from it
 Tumor_Immune_Evasion_eTRACER/
-derived/*
-# keep the small result tables so the numbers are visible on GitHub
-!derived/*.csv
+derived/
+review/
 *.h5ad
 *.mtx
 *.rds
@@ -15,3 +14,11 @@ derived/*
 # local environments
 .venv/
 venv/
+
+# kept locally, not tracked for now
+notebooks/
+scripts/
+docs/
+requirements.txt
+data_exploration/progress_report.ipynb
+data_exploration/residual_change.ipynb
